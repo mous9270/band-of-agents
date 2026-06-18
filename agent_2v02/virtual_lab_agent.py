@@ -18,6 +18,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
@@ -32,6 +33,26 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 REPORT_PATH = PROJECT_ROOT / "output" / "virtual_lab_report.json"
+
+# Handles of the other agents in the pipeline, used for autonomous handoff.
+# Source of truth is the `pipeline:` block in agent_config.yaml; the defaults
+# below are a fallback so the agent still runs if that block is absent.
+DEFAULT_PIPELINE = {
+    "material_theory": "@anonymous9270222/material-theory-agent",
+    "virtual_lab": "@anonymous9270222/virtual-lab-agent",
+    "procurement": "@anonymous9270222/the-procurement-sourcing",
+}
+
+
+def load_pipeline() -> dict[str, str]:
+    """Read the pipeline handle map from agent_config.yaml, with safe defaults."""
+    handles = dict(DEFAULT_PIPELINE)
+    try:
+        data = yaml.safe_load((PROJECT_ROOT / "agent_config.yaml").read_text()) or {}
+        handles.update(data.get("pipeline") or {})
+    except FileNotFoundError:
+        logger.warning("agent_config.yaml not found; using default pipeline handles.")
+    return handles
 
 
 class VirtualLabSimulationInput(BaseModel):
@@ -103,6 +124,8 @@ def run_virtual_lab(args: VirtualLabSimulationInput) -> dict:
 async def main():
     load_dotenv()  # loads OPENAI_API_KEY (and MODEL) for the crew + adapter
 
+    handles = load_pipeline()
+
     adapter = CrewAIAdapter(
         model=MODEL,
         role="Virtual Lab Agent",
@@ -118,11 +141,32 @@ async def main():
             "never fabricate numbers."
         ),
         custom_section=(
-            "When asked to evaluate, simulate, test, or cost any material, call the "
-            "virtuallabsimulation tool with the material proposal (JSON if you have "
-            "it). Report the verdict, predicted yield, total $/kg, and the "
-            "recommendations for procurement. If another agent provides a material "
-            "proposal, pass it straight to the tool."
+            "You are Agent 2, the Virtual Lab Agent, in an AUTONOMOUS materials-R&D "
+            "pipeline:\n"
+            "  Agent 1 (Material Theory) -> Agent 2 (you) -> Agent 3 (Procurement).\n"
+            "A human starts the pipeline with ONE request; the agents then converse "
+            "and finish the whole job themselves, without the human re-prompting at "
+            "each step.\n\n"
+            "WHEN YOU RECEIVE A MATERIAL TO EVALUATE (from the human, or handed to "
+            f"you by the Material Theory Agent {handles['material_theory']}):\n"
+            "1. Send a brief thenvoi_send_event(..., message_type=\"thought\") saying "
+            "you are running the simulation.\n"
+            "2. Call the virtuallabsimulation tool with the material proposal — if an "
+            "upstream agent gave you JSON, pass it straight through.\n"
+            "3. AUTONOMOUSLY HAND THE RESULT TO THE PROCUREMENT AGENT. Do NOT wait for "
+            "the human to ask. To do this:\n"
+            f"   a. Ensure the Procurement Agent {handles['procurement']} is in the "
+            "room: call thenvoi_get_participants(); if it is missing, call "
+            "thenvoi_lookup_peers() then thenvoi_add_participant(...) to bring it in.\n"
+            "   b. Send it the FULL VirtualLabReport as JSON plus a one-line summary "
+            "via thenvoi_send_message(<report-json + summary>, mentions=["
+            f"\"{handles['procurement']}\"]). Also @mention the original human "
+            "requester in that same message so they can follow along.\n"
+            "4. Keep every number exactly as the tool returned it — never fabricate or "
+            "round away the verdict, predicted yield, or total $/kg.\n"
+            "You do NOT write the final business proposal yourself: the Procurement "
+            "Agent closes the loop with the human. Your job is to simulate, cost, and "
+            "forward."
         ),
         additional_tools=[(VirtualLabSimulationInput, run_virtual_lab)],
         verbose=True,

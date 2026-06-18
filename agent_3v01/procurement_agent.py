@@ -21,6 +21,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import yaml
 from dotenv import load_dotenv
 from pydantic_ai import RunContext
 
@@ -36,6 +37,26 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 PROPOSAL_PATH = PROJECT_ROOT / "output" / "product_proposal.json"
+
+# Handles of the other agents in the pipeline, used for autonomous handoff.
+# Source of truth is the `pipeline:` block in agent_config.yaml; the defaults
+# below are a fallback so the agent still runs if that block is absent.
+DEFAULT_PIPELINE = {
+    "material_theory": "@anonymous9270222/material-theory-agent",
+    "virtual_lab": "@anonymous9270222/virtual-lab-agent",
+    "procurement": "@anonymous9270222/the-procurement-sourcing",
+}
+
+
+def load_pipeline() -> dict[str, str]:
+    """Read the pipeline handle map from agent_config.yaml, with safe defaults."""
+    handles = dict(DEFAULT_PIPELINE)
+    try:
+        data = yaml.safe_load((PROJECT_ROOT / "agent_config.yaml").read_text()) or {}
+        handles.update(data.get("pipeline") or {})
+    except FileNotFoundError:
+        logger.warning("agent_config.yaml not found; using default pipeline handles.")
+    return handles
 
 
 def _run_pipeline_subprocess(report_path: str) -> dict:
@@ -104,23 +125,31 @@ async def draft_product_proposal(
 async def main():
     load_dotenv()  # MODEL + OPENAI_API_KEY for the pipeline + adapter
 
+    handles = load_pipeline()
+
     adapter = PydanticAIAdapter(
         model=MODEL,
         custom_section=(
-            "You are Agent 3, the Procurement & Product Sourcing Agent, in an "
-            "automated materials-R&D pipeline. The Material Theory Agent proposes "
-            "materials; the Virtual Lab Agent simulates and costs them; you check "
-            "real-world supply-chain availability, calculate ROI, and draft the "
-            "executive product proposal.\n\n"
-            "When asked to source, cost, evaluate the business case for, compute "
-            "ROI on, or write a proposal for any material, call the "
-            "`draft_product_proposal` tool with the VirtualLabReport (JSON if you "
-            "have it). If another agent provides a report, pass it straight "
-            "through. Then report the recommendation "
-            "(GREENLIGHT/PILOT/HOLD/REJECT), the ROI (gross margin, payback, "
-            "ROI %), the overall supply risk, and a short executive summary. "
-            "Never fabricate prices, lead times or ROI numbers — they come from "
-            "the tool."
+            "You are Agent 3, the Procurement & Product Sourcing Agent — the FINAL "
+            "stage of an AUTONOMOUS materials-R&D pipeline:\n"
+            "  Agent 1 (Material Theory) -> Agent 2 (Virtual Lab) -> Agent 3 (you).\n"
+            "A human starts the pipeline with ONE request; the agents converse and "
+            "finish the job themselves. You normally receive a VirtualLabReport "
+            f"handed to you by the Virtual Lab Agent {handles['virtual_lab']} (it "
+            "will also @mention the original human requester).\n\n"
+            "WHEN YOU RECEIVE A REPORT / ARE ASKED FOR A PROPOSAL:\n"
+            "1. Send a brief band_send_event(..., message_type=\"thought\") saying you "
+            "are running the procurement analysis.\n"
+            "2. Call the `draft_product_proposal` tool with the VirtualLabReport — if "
+            "an upstream agent gave you JSON, pass it straight through.\n"
+            "3. CLOSE THE LOOP WITH THE HUMAN. You are the last agent, so you deliver "
+            "the final answer: call band_send_message(...) @mentioning the ORIGINAL "
+            "HUMAN REQUESTER who started the pipeline (the non-agent participant in "
+            "the room), NOT the upstream agent. Include the recommendation "
+            "(GREENLIGHT/PILOT/HOLD/REJECT), the ROI (gross margin, payback, ROI %), "
+            "the overall supply risk, and a short executive summary.\n"
+            "Never fabricate prices, lead times or ROI numbers — they come from the "
+            "tool."
         ),
         additional_tools=[draft_product_proposal],
     )

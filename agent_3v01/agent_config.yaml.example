@@ -6,3 +6,11 @@
 procurement:
   agent_id: "<your-procurement-agent-id>"
   api_key: "<your-procurement-api-key>"
+
+# Handles of every agent in the pipeline, used for autonomous handoff between
+# agents (so the human only sends the initial task). Use the form
+# @<username>/<agent-name>.
+pipeline:
+  material_theory: "@<username>/material-theory-agent"
+  virtual_lab: "@<username>/virtual-lab-agent"
+  procurement: "@<username>/the-procurement-sourcing"
