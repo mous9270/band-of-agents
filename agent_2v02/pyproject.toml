@@ -1,0 +1,25 @@
+[project]
+name = "agent_2v02"
+version = "0.1.0"
+description = "agent_2v02 using crewAI"
+authors = [{ name = "Your Name", email = "you@example.com" }]
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "band-sdk[crewai]>=0.2.7",
+    "crewai[tools]==1.14.7",
+]
+
+[project.scripts]
+agent_2v02 = "agent_2v02.main:run"
+run_crew = "agent_2v02.main:run"
+train = "agent_2v02.main:train"
+replay = "agent_2v02.main:replay"
+test = "agent_2v02.main:test"
+run_with_trigger = "agent_2v02.main:run_with_trigger"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.crewai]
+type = "crew"

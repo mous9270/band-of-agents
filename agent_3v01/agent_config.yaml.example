@@ -1,0 +1,8 @@
+# Band agent credentials — one named block per agent.
+# Copy to agent_config.yaml and fill in. Read back with
+# thenvoi.config.load_agent_config("procurement").
+# Create the agent as an *external agent* on the Band platform first, then paste
+# its agent_id + api_key here. This file holds live keys: it is gitignored.
+procurement:
+  agent_id: "<your-procurement-agent-id>"
+  api_key: "<your-procurement-api-key>"

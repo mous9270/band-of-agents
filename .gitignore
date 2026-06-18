@@ -1,0 +1,49 @@
+# ---- Secrets & local config ----
+.env
+.env.*
+!.env.example
+agent_config.yaml
+!agent_config.yaml.example
+*.pem
+*.key
+credentials.json
+secrets.*
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+wheels/
+*.so
+
+# ---- Virtual environments ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- uv / packaging ----
+.python-version
+
+# ---- Caches & tooling ----
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# ---- Generated artifacts ----
+**/output/*.json
+*.log
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

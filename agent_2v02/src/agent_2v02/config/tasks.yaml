@@ -1,0 +1,56 @@
+reaction_simulation_task:
+  description: >
+    The Material Theory Agent (Agent 1) has proposed a candidate material.
+    Its full proposal, as JSON, is below:
+
+    {material_proposal}
+
+    Run a virtual synthesis simulation of this material:
+      1. Read the formula, composition, material_class and synthesis_route.
+      2. Decide feasibility (FEASIBLE / CHALLENGING / INFEASIBLE) of the route,
+         reasoning mechanistically (catalysis, thermodynamics, kinetics,
+         crosslink density, decomposition, etc.).
+      3. Predict a realistic isolated yield (%) and justify it.
+      4. Specify the key process conditions you would run (temperature,
+         pressure, catalyst/loading, time, atmosphere) with a rationale each.
+      5. List expected byproducts/waste streams, process hazards, and rate the
+         scale-up risk (LOW / MEDIUM / HIGH).
+    Do not invent properties that contradict the proposal; if the proposal is
+    thin on a point, state the assumption you are making.
+  expected_output: >
+    A reaction simulation conforming to the ReactionSimulation schema:
+    synthesis_route, feasibility, predicted_yield_percent, a list of
+    reaction_conditions (parameter/value/rationale), byproducts, hazards,
+    scale_up_risk, and the mechanistic reasoning.
+  agent: process_simulation_scientist
+
+manufacturing_cost_task:
+  description: >
+    Using the reaction simulation from the previous task AND the original
+    material proposal below, produce the manufacturing economics and the final
+    Virtual Lab verdict.
+
+    {material_proposal}
+
+    Steps:
+      1. Estimate the feedstock/reagent cost per kg of product from the
+         elemental composition and synthesis route (use the proposal's
+         cost_analysis as a sanity check, not as the answer).
+      2. Estimate energy cost per kg from the process conditions, and
+         labor/overhead per kg at an appropriate production scale
+         (lab / pilot / industrial — pick the most decision-relevant one).
+      3. Call the manufacturing_cost_calculator tool with raw_materials_usd_per_kg,
+         the predicted yield_percent from the simulation, energy_usd_per_kg and
+         labor_overhead_usd_per_kg. Use the tool's TOTAL and cost_tier verbatim.
+      4. Give a manufacturability verdict: GO (viable + economical),
+         CONDITIONAL (viable but with caveats to resolve), or NO_GO.
+      5. Write recommendations_for_procurement: concrete sourcing flags for the
+         downstream Procurement Agent (which feedstocks to price-check, supply
+         risks, scale assumptions to validate).
+    State your confidence (0-1) and list your assumptions.
+  expected_output: >
+    A single VirtualLabReport JSON object: status, material_formula,
+    the full reaction_simulation, a manufacturing_cost breakdown (with the
+    calculator's numbers), manufacturability_verdict, confidence,
+    recommendations_for_procurement, and assumptions.
+  agent: manufacturing_cost_analyst
