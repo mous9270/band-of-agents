@@ -47,3 +47,18 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# ---- Node ----
+node_modules/
+
+# ---- material_theory_agent specific ----
+# Virtual env accidentally placed inside project folder
+material_theory_agent/material_theorey_agent/
+pyvenv.cfg
+
+# Direct output file (not under output/ subdirectory)
+material_theory_agent/output.json
+
+# Stray files from shell/pip mistakes
+material_theory_agent/=
+"material_theory_agent/{nodes,tools,utils}/"
