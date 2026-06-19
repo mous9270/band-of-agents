@@ -38,6 +38,8 @@ REPORT_PATH = PROJECT_ROOT / "output" / "virtual_lab_report.json"
 # Source of truth is the `pipeline:` block in agent_config.yaml; the defaults
 # below are a fallback so the agent still runs if that block is absent.
 DEFAULT_PIPELINE = {
+    # The human who starts the pipeline. Final results are delivered here.
+    "requester": "@anonymous9270222",
     "material_theory": "@anonymous9270222/material-theory-agent",
     "virtual_lab": "@anonymous9270222/virtual-lab-agent",
     "procurement": "@anonymous9270222/the-procurement-sourcing",
@@ -147,6 +149,15 @@ async def main():
             "A human starts the pipeline with ONE request; the agents then converse "
             "and finish the whole job themselves, without the human re-prompting at "
             "each step.\n\n"
+            "MENTIONS — READ CAREFULLY. Every mention must be an EXACT Band handle, "
+            "never a display name. A person's handle looks like \"@username\"; an "
+            "agent's looks like \"@username/agent-name\". Display names you see in "
+            "chat (e.g. [A Mous]) are NOT handles — never turn \"A Mous\" into "
+            "\"@A Mous\". If you are unsure of a participant's exact handle, call "
+            "thenvoi_get_participants() (or thenvoi_lookup_peers()) and copy the "
+            "`handle` field verbatim. The handles you need are fixed:\n"
+            f"  - Human requester: {handles['requester']}\n"
+            f"  - Procurement Agent: {handles['procurement']}\n\n"
             "WHEN YOU RECEIVE A MATERIAL TO EVALUATE (from the human, or handed to "
             f"you by the Material Theory Agent {handles['material_theory']}):\n"
             "1. Send a brief thenvoi_send_event(..., message_type=\"thought\") saying "
@@ -160,8 +171,9 @@ async def main():
             "thenvoi_lookup_peers() then thenvoi_add_participant(...) to bring it in.\n"
             "   b. Send it the FULL VirtualLabReport as JSON plus a one-line summary "
             "via thenvoi_send_message(<report-json + summary>, mentions=["
-            f"\"{handles['procurement']}\"]). Also @mention the original human "
-            "requester in that same message so they can follow along.\n"
+            f"\"{handles['procurement']}\", \"{handles['requester']}\"]) — i.e. "
+            "mention BOTH the Procurement Agent and the human requester, each by its "
+            "exact handle above, so the human can follow along.\n"
             "4. Keep every number exactly as the tool returned it — never fabricate or "
             "round away the verdict, predicted yield, or total $/kg.\n"
             "You do NOT write the final business proposal yourself: the Procurement "

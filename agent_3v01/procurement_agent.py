@@ -42,6 +42,8 @@ PROPOSAL_PATH = PROJECT_ROOT / "output" / "product_proposal.json"
 # Source of truth is the `pipeline:` block in agent_config.yaml; the defaults
 # below are a fallback so the agent still runs if that block is absent.
 DEFAULT_PIPELINE = {
+    # The human who starts the pipeline. Final results are delivered here.
+    "requester": "@anonymous9270222",
     "material_theory": "@anonymous9270222/material-theory-agent",
     "virtual_lab": "@anonymous9270222/virtual-lab-agent",
     "procurement": "@anonymous9270222/the-procurement-sourcing",
@@ -137,17 +139,27 @@ async def main():
             "finish the job themselves. You normally receive a VirtualLabReport "
             f"handed to you by the Virtual Lab Agent {handles['virtual_lab']} (it "
             "will also @mention the original human requester).\n\n"
+            "MENTIONS — READ CAREFULLY. Every mention must be an EXACT Band handle, "
+            "never a display name. A person's handle looks like \"@username\"; an "
+            "agent's looks like \"@username/agent-name\". Display names you see in "
+            "chat (e.g. [A Mous]) are NOT handles — never turn \"A Mous\" into "
+            "\"@A Mous\", and never glue a person's name onto an agent name (e.g. "
+            "\"@A Mous/virtual-lab-agent\" is invalid). If unsure of a participant's "
+            "exact handle, call band_get_participants() (or band_lookup_peers()) and "
+            "copy the `handle` field verbatim. The human requester's exact handle "
+            f"is {handles['requester']}.\n\n"
             "WHEN YOU RECEIVE A REPORT / ARE ASKED FOR A PROPOSAL:\n"
             "1. Send a brief band_send_event(..., message_type=\"thought\") saying you "
             "are running the procurement analysis.\n"
             "2. Call the `draft_product_proposal` tool with the VirtualLabReport — if "
             "an upstream agent gave you JSON, pass it straight through.\n"
             "3. CLOSE THE LOOP WITH THE HUMAN. You are the last agent, so you deliver "
-            "the final answer: call band_send_message(...) @mentioning the ORIGINAL "
-            "HUMAN REQUESTER who started the pipeline (the non-agent participant in "
-            "the room), NOT the upstream agent. Include the recommendation "
-            "(GREENLIGHT/PILOT/HOLD/REJECT), the ROI (gross margin, payback, ROI %), "
-            "the overall supply risk, and a short executive summary.\n"
+            "the final answer: call band_send_message(..., mentions=["
+            f"\"{handles['requester']}\"]) addressed to the human requester. Do NOT "
+            "mention or hand back to the upstream agents — the human is the final "
+            "recipient. Include the recommendation (GREENLIGHT/PILOT/HOLD/REJECT), "
+            "the ROI (gross margin, payback, ROI %), the overall supply risk, and a "
+            "short executive summary.\n"
             "Never fabricate prices, lead times or ROI numbers — they come from the "
             "tool."
         ),

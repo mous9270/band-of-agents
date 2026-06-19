@@ -8,9 +8,11 @@ procurement:
   api_key: "<your-procurement-api-key>"
 
 # Handles of every agent in the pipeline, used for autonomous handoff between
-# agents (so the human only sends the initial task). Use the form
-# @<username>/<agent-name>.
+# agents (so the human only sends the initial task). Mentions must use exact
+# handles: @<username> for people, @<username>/<agent-name> for agents.
+# `requester` is the human who starts the pipeline (final results go to them).
 pipeline:
+  requester: "@<username>"
   material_theory: "@<username>/material-theory-agent"
   virtual_lab: "@<username>/virtual-lab-agent"
   procurement: "@<username>/the-procurement-sourcing"
